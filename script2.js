@@ -1,5 +1,6 @@
 let container = document.querySelector(".container");
 let searchInput = document.getElementById("search");
+let categoryFilter = document.getElementById("categoryFilter");
 let loader = document.getElementById("loader");
 let loadMoreBtn = document.getElementById("loadMore");
 
@@ -16,12 +17,34 @@ function fetchProducts() {
       allProducts = data;
       visibleCount = 0;
       renderCards(); 
+      setupCategories(data);
       loader.style.display = "none";
     })
     .catch((err) => {
       console.error("Error fetching products:", err);
       loader.innerText = "Failed to load products.";
     });
+}
+
+function setupCategories(data) {
+  const categories = new Set(data.map((item) => item.category));
+  categories.forEach((cat) => {
+    const opt = document.createElement("option");
+    opt.value = cat;
+    opt.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
+    categoryFilter.appendChild(opt);
+  });
+}
+
+function getFilteredProducts() {
+  const searchVal = searchInput.value.toLowerCase();
+  const selectedCategory = categoryFilter.value;
+
+  return allProducts.filter((p) => {
+    const matchTitle = p.title.toLowerCase().includes(searchVal);
+    const matchCategory = selectedCategory === "" || p.category === selectedCategory;
+    return matchTitle && matchCategory;
+  });
 }
 
 function renderCards(filteredList) {
@@ -42,7 +65,6 @@ function renderCards(filteredList) {
 
   visibleCount += perPage;
 
-  
   if (visibleCount >= dataToRender.length) {
     loadMoreBtn.style.display = "none";
   } else {
@@ -50,29 +72,19 @@ function renderCards(filteredList) {
   }
 }
 
-
-searchInput.addEventListener("input", () => {
-  const val = searchInput.value.toLowerCase();
-  const filtered = allProducts.filter((p) =>
-    p.title.toLowerCase().includes(val)
-  );
-
+function resetAndRender() {
   container.innerHTML = "";
   visibleCount = 0;
+  const filtered = getFilteredProducts();
   renderCards(filtered);
-});
+}
 
+searchInput.addEventListener("input", resetAndRender);
+categoryFilter.addEventListener("change", resetAndRender);
 
 loadMoreBtn.addEventListener("click", () => {
-  const val = searchInput.value.toLowerCase();
-  const filtered = val
-    ? allProducts.filter((p) =>
-        p.title.toLowerCase().includes(val)
-      )
-    : allProducts;
-
+  const filtered = getFilteredProducts();
   renderCards(filtered);
 });
-
 
 fetchProducts();
